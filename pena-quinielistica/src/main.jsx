@@ -91,21 +91,23 @@ function Ranking({ranking, loading, error, reload}) {
 
   return (
     <>
-      <section className="league-head">
-        <div>
-          <div className="kicker">CLASIFICACIÓN GENERAL</div>
-          <h1>La liga de la peña</h1>
-          <p>Todos parten de cero. Cada acierto cuenta.</p>
+      <section className="hero-dashboard">
+        <div className="hero-logo-wrap">
+          <img src="/pena-logo.png" alt="Peña Quinielística" className="hero-logo"/>
         </div>
-        <button className="icon-button" onClick={reload} title="Actualizar">
+        <div className="hero-copy">
+          <div className="kicker">CLASIFICACIÓN GENERAL</div>
+          <h1>Clasificación general</h1>
+          <p>Todos parten de cero. Cada acierto cuenta.</p>
+          <div className="hero-actions">
+            <span><b>{ranking.length}</b> participantes</span>
+            <span><b>0</b> jornadas jugadas</span>
+            <span><b>0</b> aciertos totales</span>
+          </div>
+        </div>
+        <button className="icon-button hero-refresh" onClick={reload} title="Actualizar">
           <RefreshCw size={18}/>
         </button>
-      </section>
-
-      <section className="stats-strip">
-        <div><Users size={18}/><span><b>{ranking.length}</b> participantes</span></div>
-        <div><Target size={18}/><span><b>0</b> aciertos</span></div>
-        <div><TrendingUp size={18}/><span><b>J1</b> en juego</span></div>
       </section>
 
       <section className="podium">
