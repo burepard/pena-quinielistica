@@ -73,8 +73,8 @@ function Ranking({participants,loading,error,reload}) {
     <div className="sectionTitle"><div><h2>Clasificación</h2><p className="muted">Jornada 1 · todos parten de 0</p></div><button className="refresh" onClick={reload}><RefreshCw size={16}/></button></div>
     {loading && <div className="box"><p>Cargando participantes desde Supabase...</p></div>}
     {error && <div className="box"><p>{error}</p></div>}
-    {!loading && !error && <div className="table"><table><thead><tr><th>Pos.</th><th>Participante</th><th>Quiniela</th><th>Col.</th><th>J1</th><th>Total</th></tr></thead><tbody>
-      {ranking.map((p,i)=><tr key={p.id}><td>{i+1}</td><td><b>{p.name}</b></td><td>{p.quiniela}</td><td>{p.column_number}</td><td>{p.hits}</td><td><b>{p.hits}</b></td></tr>)}
+    {!loading && !error && <div className="table"><table><thead><tr><th>Pos.</th><th>Participante</th><th>J1</th><th>Total</th></tr></thead><tbody>
+      {ranking.map((p,i)=><tr key={p.id}><td>{i+1}</td><td><b>{p.name}</b></td><td>{p.hits}</td><td><b>{p.hits}</b></td></tr>)}
     </tbody></table></div>}
   </section>;
 }
