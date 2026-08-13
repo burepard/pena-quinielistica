@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { Trophy, CalendarDays, BarChart3, Settings, Upload, RefreshCw } from "lucide-react";
+import {
+  Trophy, CalendarDays, BarChart3, Settings, RefreshCw,
+  ChevronRight, Medal, Target, TrendingUp, Users
+} from "lucide-react";
 import "./styles.css";
 
 const supabase = createClient(
@@ -10,8 +13,8 @@ const supabase = createClient(
 );
 
 const tabs = [
-  ["ranking", "Ranking", Trophy],
-  ["jornada", "Jornada", CalendarDays],
+  ["ranking", "Clasificación", Trophy],
+  ["jornadas", "Jornadas", CalendarDays],
   ["stats", "Estadísticas", BarChart3],
   ["admin", "Admin", Settings]
 ];
@@ -33,7 +36,7 @@ function App() {
 
     if (error) {
       console.error(error);
-      setError("No se han podido cargar los participantes desde Supabase.");
+      setError("No se han podido cargar los participantes.");
     } else {
       setParticipants((data || []).map(p => ({ ...p, hits: 0 })));
     }
@@ -42,49 +45,145 @@ function App() {
 
   useEffect(() => { loadParticipants(); }, []);
 
+  const ranking = useMemo(
+    () => [...participants].sort((a,b) => b.hits - a.hits || a.column_number - b.column_number),
+    [participants]
+  );
+
+  return (
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="topbar-inner">
+          <div className="brand">
+            <div className="brand-shield"><Trophy size={22}/></div>
+            <div>
+              <div className="brand-title">PEÑA QUINIELÍSTICA</div>
+              <div className="brand-subtitle">Temporada 2026/27</div>
+            </div>
+          </div>
+          <div className="matchday"><span>JORNADA</span><strong>1</strong></div>
+        </div>
+      </header>
+
+      <main className="page">
+        {tab === "ranking" && (
+          <Ranking ranking={ranking} loading={loading} error={error} reload={loadParticipants}/>
+        )}
+        {tab === "jornadas" && <Jornadas/>}
+        {tab === "stats" && <Stats ranking={ranking}/>}
+        {tab === "admin" && <Admin/>}
+      </main>
+
+      <nav className="bottom-nav">
+        {tabs.map(([id, name, Icon]) => (
+          <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
+            <Icon size={19}/>
+            <span>{name}</span>
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
+function Ranking({ranking, loading, error, reload}) {
+  const podium = ranking.slice(0,3);
+
   return (
     <>
-      <header>
-        <div className="logo"><Trophy /></div>
-        <div><b>Peña Quinielística</b><small>Temporada 2026/27 · Ranking oficial</small></div>
-        <span>Jornada 1</span>
-      </header>
-      <main>
-        <section className="hero">
-          <div><em>EMPEZAMOS DE 0</em><h1>¿Quién será el campeón?</h1><p>16 participantes · 2 quinielas · clasificación jornada a jornada</p></div>
-          <Trophy size={50} />
-        </section>
-        <nav>{tabs.map(([id,name,Icon]) =>
-          <button key={id} className={tab===id ? "on" : ""} onClick={()=>setTab(id)}><Icon size={17}/>{name}</button>
-        )}</nav>
-        {tab==="ranking" && <Ranking participants={participants} loading={loading} error={error} reload={loadParticipants}/>}
-        {tab==="jornada" && <Jornada/>}
-        {tab==="stats" && <Simple title="Estadísticas" icon={BarChart3} text="Aquí veremos medias, mejores jornadas y evolución cuando empecemos a registrar resultados."/>}
-        {tab==="admin" && <Simple title="Panel administrador" icon={Settings} text="Aquí añadiremos la gestión de jornadas, resultados y fotografías."/>}
-      </main>
-      <footer>Peña Quinielística · Ranking desde 0</footer>
+      <section className="league-head">
+        <div>
+          <div className="kicker">CLASIFICACIÓN GENERAL</div>
+          <h1>La liga de la peña</h1>
+          <p>Todos parten de cero. Cada acierto cuenta.</p>
+        </div>
+        <button className="icon-button" onClick={reload} title="Actualizar">
+          <RefreshCw size={18}/>
+        </button>
+      </section>
+
+      <section className="stats-strip">
+        <div><Users size={18}/><span><b>{ranking.length}</b> participantes</span></div>
+        <div><Target size={18}/><span><b>0</b> aciertos</span></div>
+        <div><TrendingUp size={18}/><span><b>J1</b> en juego</span></div>
+      </section>
+
+      <section className="podium">
+        {podium.map((p, i) => (
+          <div className={`podium-card rank-${i+1}`} key={p.id}>
+            <div className="medal"><Medal size={18}/><span>{i+1}</span></div>
+            <div className="podium-name">{p.name}</div>
+            <div className="podium-score">{p.hits}<small> aciertos</small></div>
+          </div>
+        ))}
+      </section>
+
+      <section className="ranking-card">
+        <div className="card-header">
+          <div><h2>Clasificación</h2><p>Jornada 1 · acumulado</p></div>
+          <span className="season-badge">2026/27</span>
+        </div>
+
+        {loading && <div className="state">Cargando clasificación...</div>}
+        {error && <div className="state error">{error}</div>}
+
+        {!loading && !error && (
+          <div className="ranking-list">
+            {ranking.map((p, i) => (
+              <div className="ranking-row" key={p.id}>
+                <div className={`position ${i < 3 ? "top" : ""}`}>{i+1}</div>
+                <div className="avatar">{initials(p.name)}</div>
+                <div className="player-name">{p.name}</div>
+                <div className="trend">—</div>
+                <div className="points"><strong>{p.hits}</strong><small> aciertos</small></div>
+                <ChevronRight size={17} className="row-arrow"/>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </>
   );
 }
 
-function Ranking({participants,loading,error,reload}) {
-  const ranking=[...participants].sort((a,b)=>b.hits-a.hits || a.column_number-b.column_number);
-  return <section>
-    <div className="sectionTitle"><div><h2>Clasificación</h2><p className="muted">Jornada 1 · todos parten de 0</p></div><button className="refresh" onClick={reload}><RefreshCw size={16}/></button></div>
-    {loading && <div className="box"><p>Cargando participantes desde Supabase...</p></div>}
-    {error && <div className="box"><p>{error}</p></div>}
-    {!loading && !error && <div className="table"><table><thead><tr><th>Pos.</th><th>Participante</th><th>J1</th><th>Total</th></tr></thead><tbody>
-      {ranking.map((p,i)=><tr key={p.id}><td>{i+1}</td><td><b>{p.name}</b></td><td>{p.hits}</td><td><b>{p.hits}</b></td></tr>)}
-    </tbody></table></div>}
-  </section>;
+function Jornadas() {
+  return (
+    <section className="page-section">
+      <div className="section-title"><div className="kicker">HISTÓRICO</div><h1>Jornadas</h1><p>Consulta los resultados de cada jornada.</p></div>
+      <div className="empty-state">
+        <CalendarDays size={42}/>
+        <h2>La temporada aún no ha comenzado</h2>
+        <p>Cuando llegue la Jornada 1 aparecerán aquí los 14 partidos, resultados y aciertos.</p>
+      </div>
+    </section>
+  );
 }
 
-function Jornada() {
-  return <section><h2>Jornada 1</h2><p className="muted">Resultados y aciertos aparecerán aquí.</p><div className="box"><Upload/><div><b>Actualización por fotos</b><p>El administrador podrá cargar las dos imágenes de la quiniela y registrar los resultados.</p></div></div></section>;
+function Stats({ranking}) {
+  return (
+    <section className="page-section">
+      <div className="section-title"><div className="kicker">TEMPORADA</div><h1>Estadísticas</h1><p>Todo lo que pasa en la peña.</p></div>
+      <div className="stat-grid">
+        <div className="big-stat"><span>Participantes</span><strong>{ranking.length}</strong><small>en competición</small></div>
+        <div className="big-stat"><span>Jornadas</span><strong>0</strong><small>completadas</small></div>
+        <div className="big-stat"><span>Mejor marca</span><strong>—</strong><small>aciertos</small></div>
+      </div>
+      <div className="empty-state compact"><BarChart3 size={34}/><h2>Estadísticas disponibles pronto</h2><p>La evolución, medias y mejores jornadas se activarán con los primeros resultados.</p></div>
+    </section>
+  );
 }
 
-function Simple({title,icon:Icon,text}) {
-  return <section><h2>{title}</h2><div className="box"><Icon/><div><b>{title}</b><p>{text}</p></div></div></section>;
+function Admin() {
+  return (
+    <section className="page-section">
+      <div className="section-title"><div className="kicker">PRIVADO</div><h1>Administración</h1><p>Gestión de la peña.</p></div>
+      <div className="admin-card"><Settings size={30}/><div><h2>Panel de administrador</h2><p>Aquí prepararemos la creación de jornadas, resultados y carga de las dos quinielas.</p><button className="primary">Próximamente</button></div></div>
+    </section>
+  );
 }
 
-createRoot(document.getElementById("root")).render(<App />);
+function initials(name) {
+  return name.split(" ").map(x => x[0]).join("").slice(0,2).toUpperCase();
+}
+
+createRoot(document.getElementById("root")).render(<App/>);
