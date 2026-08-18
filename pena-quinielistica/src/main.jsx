@@ -25,11 +25,11 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  async function loadParticipants() {
+async function loadParticipants() {
   setLoading(true);
   setError("");
 
-  // Cargar participantes
+  // 1. Cargar participantes
   const { data: participantsData, error: participantsError } =
     await supabase
       .from("participants")
@@ -43,12 +43,27 @@ function App() {
     return;
   }
 
-  // Cargar puntos de la Jornada 1
+  // 2. Buscar la Jornada 1 por su número
+  const { data: jornadaData, error: jornadaError } =
+    await supabase
+      .from("jornadas")
+      .select("id,number")
+      .eq("number", 1)
+      .single();
+
+  if (jornadaError) {
+    console.error("ERROR JORNADA:", jornadaError);
+    setError("No se ha podido encontrar la Jornada 1.");
+    setLoading(false);
+    return;
+  }
+
+  // 3. Cargar los puntos usando el ID REAL de la jornada
   const { data: scoresData, error: scoresError } =
     await supabase
       .from("scores")
       .select("participant_id,hits")
-      .eq("jornada_id", 1);
+      .eq("jornada_id", jornadaData.id);
 
   if (scoresError) {
     console.error("ERROR SCORES:", scoresError);
@@ -57,10 +72,11 @@ function App() {
     return;
   }
 
+  console.log("JORNADA:", jornadaData);
   console.log("PARTICIPANTES:", participantsData);
   console.log("SCORES:", scoresData);
 
-  // Unir participantes con sus puntos
+  // 4. Unir participantes con sus puntos
   const participantsWithScores = (participantsData || []).map(p => {
     const score = (scoresData || []).find(
       s => Number(s.participant_id) === Number(p.id)
@@ -75,6 +91,7 @@ function App() {
   setParticipants(participantsWithScores);
   setLoading(false);
 }
+  
   useEffect(() => { loadParticipants(); }, []);
 
   const ranking = useMemo(
