@@ -43,27 +43,11 @@ async function loadParticipants() {
     return;
   }
 
-  // 2. Buscar la Jornada 1 por su número
-  const { data: jornadaData, error: jornadaError } =
-    await supabase
-      .from("jornadas")
-      .select("id,number")
-      .eq("number", 1)
-      .single();
-
-  if (jornadaError) {
-    console.error("ERROR JORNADA:", jornadaError);
-    setError("No se ha podido encontrar la Jornada 1.");
-    setLoading(false);
-    return;
-  }
-
-  // 3. Cargar los puntos usando el ID REAL de la jornada
+  // 2. Cargar las puntuaciones
   const { data: scoresData, error: scoresError } =
     await supabase
       .from("scores")
-      .select("participant_id,hits")
-      .eq("jornada_id", jornadaData.id);
+      .select("participant_id,hits,jornada_id");
 
   if (scoresError) {
     console.error("ERROR SCORES:", scoresError);
@@ -72,11 +56,11 @@ async function loadParticipants() {
     return;
   }
 
-  console.log("JORNADA:", jornadaData);
   console.log("PARTICIPANTES:", participantsData);
   console.log("SCORES:", scoresData);
 
-  // 4. Unir participantes con sus puntos
+  // 3. Como actualmente solo tenemos la Jornada 1,
+  // usamos los puntos existentes en scores
   const participantsWithScores = (participantsData || []).map(p => {
     const score = (scoresData || []).find(
       s => Number(s.participant_id) === Number(p.id)
@@ -84,7 +68,7 @@ async function loadParticipants() {
 
     return {
       ...p,
-      hits: score ? score.hits : 0
+      hits: score ? Number(score.hits) : 0
     };
   });
 
