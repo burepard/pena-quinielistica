@@ -26,22 +26,46 @@ function App() {
   const [error, setError] = useState("");
 
   async function loadParticipants() {
-    setLoading(true);
-    setError("");
-    const { data, error } = await supabase
-      .from("participants")
-      .select("id,name,quiniela,column_number")
-      .order("quiniela")
-      .order("column_number");
+  setLoading(true);
+  setError("");
 
-    if (error) {
-      console.error(error);
-      setError("No se han podido cargar los participantes.");
-    } else {
-      setParticipants((data || []).map(p => ({ ...p, hits: 0 })));
-    }
-    setLoading(false);
+  const { data, error } = await supabase
+    .from("participants")
+    .select(`
+      id,
+      name,
+      quiniela,
+      column_number,
+      scores (
+        hits,
+        jornada_id,
+        jornadas (
+          number
+        )
+      )
+    `)
+    .order("column_number");
+
+  if (error) {
+    console.error(error);
+    setError("No se han podido cargar los participantes desde Supabase.");
+  } else {
+    const participantsWithScores = (data || []).map(p => {
+      const jornada1 = p.scores?.find(
+        score => score.jornadas?.number === 1
+      );
+
+      return {
+        ...p,
+        hits: jornada1?.hits || 0
+      };
+    });
+
+    setParticipants(participantsWithScores);
   }
+
+  setLoading(false);
+}
 
   useEffect(() => { loadParticipants(); }, []);
 
