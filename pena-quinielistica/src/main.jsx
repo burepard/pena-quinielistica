@@ -29,44 +29,52 @@ function App() {
   setLoading(true);
   setError("");
 
-  const { data, error } = await supabase
-    .from("participants")
-    .select(`
-      id,
-      name,
-      quiniela,
-      column_number,
-      scores (
-        hits,
-        jornada_id,
-        jornadas (
-          number
-        )
-      )
-    `)
-    .order("column_number");
+  // Cargar participantes
+  const { data: participantsData, error: participantsError } =
+    await supabase
+      .from("participants")
+      .select("id,name,quiniela,column_number")
+      .order("column_number");
 
-  if (error) {
-    console.error(error);
-    setError("No se han podido cargar los participantes desde Supabase.");
-  } else {
-    const participantsWithScores = (data || []).map(p => {
-      const jornada1 = p.scores?.find(
-        score => score.jornadas?.number === 1
-      );
-
-      return {
-        ...p,
-        hits: jornada1?.hits || 0
-      };
-    });
-
-    setParticipants(participantsWithScores);
+  if (participantsError) {
+    console.error("ERROR PARTICIPANTES:", participantsError);
+    setError("No se han podido cargar los participantes.");
+    setLoading(false);
+    return;
   }
 
+  // Cargar puntos de la Jornada 1
+  const { data: scoresData, error: scoresError } =
+    await supabase
+      .from("scores")
+      .select("participant_id,hits")
+      .eq("jornada_id", 1);
+
+  if (scoresError) {
+    console.error("ERROR SCORES:", scoresError);
+    setError("No se han podido cargar los resultados.");
+    setLoading(false);
+    return;
+  }
+
+  console.log("PARTICIPANTES:", participantsData);
+  console.log("SCORES:", scoresData);
+
+  // Unir participantes con sus puntos
+  const participantsWithScores = (participantsData || []).map(p => {
+    const score = (scoresData || []).find(
+      s => Number(s.participant_id) === Number(p.id)
+    );
+
+    return {
+      ...p,
+      hits: score ? score.hits : 0
+    };
+  });
+
+  setParticipants(participantsWithScores);
   setLoading(false);
 }
-
   useEffect(() => { loadParticipants(); }, []);
 
   const ranking = useMemo(
